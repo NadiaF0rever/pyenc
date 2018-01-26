@@ -7,7 +7,6 @@ try:
 except ImportError:
     import StringIO
 
-import sys
 import hashlib
 
 from Crypto.Cipher import AES
@@ -42,6 +41,7 @@ class CipherFile(object):
 
         self.__cipher = get_cipher()
         self.__io = None
+        self.__fp = None
 
         if mode == CIPHER_FILE_READ:
             enc = False
@@ -73,8 +73,23 @@ class CipherFile(object):
 
 
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_tb):
+        self.close()
+        return exc_type and True or False
+
+
     def __pass(self, *arg, **kv):
         pass
+
+    def close(self):
+        if self.__io:
+            self.__io.close()
+
+        if self.__fp:
+            self.__fp.close()
 
     def __not_support(self, *arg, **kv):
         raise NotImplementedError
@@ -115,7 +130,6 @@ class CipherFile(object):
                 self.__io.seek(0, 0)
 
                 self.write = self.__not_support
-                self.close = self.__pass
 
                 self.read = self.__io.read
                 self.readline = self.__io.readline
@@ -123,11 +137,12 @@ class CipherFile(object):
 
         else:
             fp = open(path, "rU")
+            self.__fp = fp
 
             self.read = fp.read
             self.readline = fp.readline
             self.readlines = fp.readlines
-            self.close = fp.close
+
             self.write = self.__not_support
             
 
