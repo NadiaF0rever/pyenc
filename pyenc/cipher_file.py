@@ -78,7 +78,9 @@ class CipherFile(object):
 
     def __exit__(self, exc_type, exc_value, exc_tb):
         self.close()
-        return exc_type and True or False
+        if exc_type:
+            return False
+        return True
 
 
     def __pass(self, *arg, **kv):
