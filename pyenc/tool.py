@@ -96,13 +96,13 @@ def _pyenc_init():
             (("-P", ), {"type": str, "dest": "password", "default": "",
                 "help": "specific encrypt/decrypt password"}),
 
-            (("-R", ), {"type": str, "dest": "dirs", "default": "",
-                "help": "specific encrypt/decrypt dirs"
-                " (all .py file in each dir will be processed) "
+            (("-R", ), {"dest": "dirs", "default": [], "action": "append",
+                "help": "specific encrypt/decrypt directory "
+                " (all .py file in direcrtory will be processed) "
                 "multiple dir split by '^'"}),
 
-            (("-F", ), {"type": str, "dest": "files", "default": "",
-                "help": "specific encrypt/decrypt .py files multiple file split by '^'"})
+            (("-F", ), {"dest": "files", "default": [], "action": "append",
+                "help": "specific encrypt/decrypt .py file"})
     )
 
     for args, kvargs in common_argument:
@@ -114,6 +114,12 @@ def _pyenc_init():
 
     pwd_arg, pwd_kvarg = common_argument[0]
     parser_run.add_argument(*pwd_arg, **pwd_kvarg)
+    parser_run.add_argument("--strict", action="store_true", dest="strict",
+            help="whether pyenc will throw exception if some python files are not encrypt")
+
+    parser_run.add_argument("--prefix", dest="prefixes", action="append",
+            help="all python module which path begin with prefix will be hooked by pyenc"
+            " default is basepath(main)")
 
     parser_run.add_argument("main", type=str, help="specific the main python programme file")
     parser_run.add_argument("args", nargs=argparse.REMAINDER)
