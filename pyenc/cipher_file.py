@@ -15,8 +15,6 @@ from Crypto.Cipher import AES
 from . import PyEncError
 
 
-get_cipher = None
-
 class PyEncIOError(PyEncError):
     pass
 
@@ -33,13 +31,28 @@ class CipherFile(object):
 
     MAGIC = "CFBIAODI"
 
+    GET_CIPHER = None
+    STRICT = False
+
+    @classmethod
+    def Init(cls, password, strict):
+
+        #初始化key, iv
+        key, iv = evp_bytestokey(hashlib.sha1, password, "emanon..", 5, 32, 16)
+
+        def _cipher():
+            return AES.new(key, mode=AES.MODE_CBC, IV=iv)
+
+        cls.GET_CIPHER = staticmethod(_cipher)
+        cls.STRICT = strict
+
 
     def __init__(self, path, mode):
 
-        if not get_cipher:
-            raise PyEncError("cipher file not initialized call init first")
+        if not CipherFile.GET_CIPHER:
+            raise PyEncError("cipher file not initialized call Init first")
 
-        self.__cipher = get_cipher()
+        self.__cipher = CipherFile.GET_CIPHER()
         self.__io = None
         self.__fp = None
 
@@ -50,8 +63,8 @@ class CipherFile(object):
                 if magic == self.MAGIC:
                     enc = True
 
-            #if not ignore and not enc:
-            #    raise PyEncIOError("invalid cipher file %s" % path)
+            if CipherFile.STRICT and not enc:
+                raise PyEncIOError("invalid cipher file %s" % path)
 
             self._create_read_file(path, enc)
 
@@ -146,18 +159,11 @@ class CipherFile(object):
             self.readlines = fp.readlines
 
             self.write = self.__not_support
-            
 
 
-def Init(password):
-    global get_cipher
-    #初始化key, iv
-    key, iv = evp_bytestokey(hashlib.sha1, password, "emanon..", 5, 32, 16)
 
-    def _cipher():
-        return AES.new(key, mode=AES.MODE_CBC, IV=iv)
-    get_cipher = _cipher
-
+def Init(*args, **kvargs):
+    return CipherFile.Init(*args, **kvargs)
 
 def Open(path, mode):
     return CipherFile(path, mode)

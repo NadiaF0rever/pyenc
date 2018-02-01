@@ -8,29 +8,40 @@ import logging
 
 from . import cipher_file
 
-file_is_extension = lambda info_: info_[2] == imp.C_EXTENSION
-
 class HookObj(object):
 
-    #file_is_extension = lambda info_: info_[2] == imp.C_EXTENSION
+    FILE_IS_EXTENSION = staticmethod(lambda info_: info_[2] == imp.C_EXTENSION)
+
+    PREFIXES = None
+
+    @classmethod
+    def Init(cls, prefixes=[]):
+        cls.PREFIXES = [i for i in prefixes]
+
 
     def __init__(self, path):
-        logging.debug("check_path: %s", path)
         if not os.path.exists(path):
             raise ImportError
 
+        if self.PREFIXES:
+            for p in self.PREFIXES:
+                if p.startswith(path):
+                    break
+
+            else:
+                raise ImportError
+
         self._base_path = path
         logging.debug("set_base_path: %s %s", self._base_path, self)
-        print sys.path_importer_cache
 
 
     def get_filename(self, fullname):
         path, _ = self._get_fileinfo(fullname)
         return path
-        
+
     def get_code(self, fullname):
         path, info = self._get_fileinfo(fullname)
-        if file_is_extension(info):
+        if HookObj.FILE_IS_EXTENSION(info):
             return None
 
         with cipher_file.Open(path, cipher_file.CIPHER_FILE_READ) as fp:
@@ -58,7 +69,7 @@ class HookObj(object):
         logging.debug("load_module fullname: %s", fullname)
 
         path, info = self._get_fileinfo(fullname)
-        if file_is_extension(info):
+        if HookObj.FILE_IS_EXTENSION(info):
             with open(path, info[1]) as fp:
                 return imp.load_module(fullname, fp, path, info)
 
@@ -81,7 +92,7 @@ class HookObj(object):
 
         exec code in module.__dict__
 
-        print "%s %s" % (fullname, dir(module))
+        logging.debug("LOAD %s %s", fullname, dir(module))
 
         return module
 
