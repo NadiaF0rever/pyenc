@@ -107,7 +107,7 @@ def pyenc_tool():
     strict_arg, strict_kvarg = common_argument[1]
     parser_run.add_argument(*strict_arg, **strict_kvarg)
 
-    parser_run.add_argument("--prefix", dest="prefixes", action="append",
+    parser_run.add_argument("--prefix", dest="prefixes", action="append", default=[],
             help="all python module which path begin with prefix will be hooked by pyenc"
             " default is basepath(main)")
 
@@ -129,12 +129,16 @@ def pyenc_tool():
     elif op.mode == _MODE_DEC:
         return pyenc_dec_files(op.dirs, op.files, op.password, op.strict)
 
+    if not op.prefixes:
+        op.prefixes.append(os.path.dirname(op.main))
 
-    hook.HookObj.Init(op.prefix)
+    hook.HookObj.Init(op.prefixes)
 
     sys.path_hooks.append(hook.Hook)
     sys.path_importer_cache = {}
-    sys.argv[0] = op.main
+    sys.argv = op.args
+    sys.argv.insert(0, op.main)
+
     with cipher_file.Open(op.main, cipher_file.CIPHER_FILE_READ) as fp:
         code = compile(fp.read(), op.main, "exec")
 
