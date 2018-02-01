@@ -16,7 +16,7 @@ class HookObj(object):
 
     @classmethod
     def Init(cls, prefixes=[]):
-        cls.PREFIXES = [i for i in prefixes]
+        cls.PREFIXES = [os.path.abspath(i) for i in prefixes]
 
 
     def __init__(self, path):
@@ -25,7 +25,7 @@ class HookObj(object):
 
         if self.PREFIXES:
             for p in self.PREFIXES:
-                if p.startswith(path):
+                if path.startswith(p):
                     break
 
             else:
