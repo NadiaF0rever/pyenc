@@ -4,5 +4,5 @@
 class PyEncError(Exception):
     pass
 
-from .tool import pyenc_enc_files, pyenc_dec_files, pyenc_start
+from .tool import pyenc_enc_files, pyenc_dec_files, pyenc_tool
 

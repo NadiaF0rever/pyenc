@@ -1,4 +1,4 @@
-#!/usr/bin/python2.7
+
 #-*- coding: utf8 -*-
 
 try:
@@ -12,6 +12,9 @@ import argparse
 
 from . import cipher_file, hook
 
+_MODE_ENC = "encrypt"
+_MODE_DEC = "decrypt"
+_MODE_RUN = "run"
 
 def _pyenc_enc_cb(path):
     io = StringIO.StringIO()
@@ -37,7 +40,7 @@ def _pyenc_dec_cb(path):
 
 def _build_pyenc_cb(cb):
 
-    def _pyenc_process_files_cb(dirs, files, password):
+    def _pyenc_process_files_cb(dirs, files, password, strict):
         process_files = set()
         [process_files.add(i) for i in files]
 
@@ -47,7 +50,7 @@ def _build_pyenc_cb(cb):
                     process_files.add(os.path.join(base_dir, f))
 
 
-        cipher_file.Init(password)
+        cipher_file.Init(password, strict)
 
         for dir_ in dirs:
             os.path.walk(dir_, walk_cb, None)
@@ -62,26 +65,7 @@ pyenc_enc_files = _build_pyenc_cb(_pyenc_enc_cb)
 pyenc_dec_files = _build_pyenc_cb(_pyenc_dec_cb)
 
 
-def pyenc_start():
-    '''
-    cipher_file.Init(password, False)
-    sys.path_hooks.append(hook.Hook)
-    sys.path_importer_cache = {}
-
-    sys.argv[0] = script_name
-    with cipher_file.Open(script_name, cipher_file.CIPHER_FILE_READ) as fp:
-        code = compile(fp.read(), script_name, "exec")
-
-
-    global_dict = globals()
-    global_dict["__name__"] = "__main__"
-    exec code in global_dict
-    '''
-
-    _pyenc_init()
-
-
-def _pyenc_init():
+def pyenc_tool():
     PROG="pyenc"
 
     parser = argparse.ArgumentParser(prog=PROG,
@@ -90,16 +74,20 @@ def _pyenc_init():
     sub_parser = parser.add_subparsers(help="run pyenc in different mode")
 
     parser_enc = sub_parser.add_parser("encrypt", help="encrypt specific python files")
+    parser_enc.set_defaults(mode=_MODE_ENC)
     parser_dec = sub_parser.add_parser("decrypt", help="decrypt specific python files which encrypted by pyenc")
+    parser_dec.set_defaults(mode=_MODE_DEC)
 
     common_argument = (
             (("-P", ), {"type": str, "dest": "password", "default": "",
                 "help": "specific encrypt/decrypt password"}),
 
+            (("--strict", ), {"action": "store_true", "dest": "strict",
+                "help": "whether pyenc will throw exception if some python files are not encrypt"}),
+
             (("-R", ), {"dest": "dirs", "default": [], "action": "append",
                 "help": "specific encrypt/decrypt directory "
-                " (all .py file in direcrtory will be processed) "
-                "multiple dir split by '^'"}),
+                " all .py file in direcrtory will be processed"}),
 
             (("-F", ), {"dest": "files", "default": [], "action": "append",
                 "help": "specific encrypt/decrypt .py file"})
@@ -111,11 +99,13 @@ def _pyenc_init():
 
 
     parser_run = sub_parser.add_parser("run", help="run help")
+    parser_run.set_defaults(mode=_MODE_RUN)
 
     pwd_arg, pwd_kvarg = common_argument[0]
     parser_run.add_argument(*pwd_arg, **pwd_kvarg)
-    parser_run.add_argument("--strict", action="store_true", dest="strict",
-            help="whether pyenc will throw exception if some python files are not encrypt")
+
+    strict_arg, strict_kvarg = common_argument[1]
+    parser_run.add_argument(*strict_arg, **strict_kvarg)
 
     parser_run.add_argument("--prefix", dest="prefixes", action="append",
             help="all python module which path begin with prefix will be hooked by pyenc"
@@ -130,4 +120,24 @@ def _pyenc_init():
         sys.stderr.write("no password specific. use -h for help\n")
         sys.exit(1)
 
-    print op
+    cipher_file.CipherFile.Init(op.password, op.strict)
+
+
+    if op.mode == _MODE_ENC:
+        return pyenc_enc_files(op.dirs, op.files, op.password, op.strict)
+
+    elif op.mode == _MODE_DEC:
+        return pyenc_dec_files(op.dirs, op.files, op.password, op.strict)
+
+
+    hook.HookObj.Init(op.prefix)
+
+    sys.path_hooks.append(hook.Hook)
+    sys.path_importer_cache = {}
+    sys.argv[0] = op.main
+    with cipher_file.Open(op.main, cipher_file.CIPHER_FILE_READ) as fp:
+        code = compile(fp.read(), op.main, "exec")
+
+    global_dict = globals()
+    global_dict["__name__"] = "__main__"
+    exec code in global_dict
