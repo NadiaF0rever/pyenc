@@ -1,4 +1,4 @@
-
+#!/usr/bin/python2.7
 #-*- coding: utf8 -*-
 
 try:
@@ -98,7 +98,7 @@ def pyenc_tool():
         parser_dec.add_argument(*args, **kvargs)
 
 
-    parser_run = sub_parser.add_parser("run", help="run help")
+    parser_run = sub_parser.add_parser("run", help="run python programme which encrypted by pyenc")
     parser_run.set_defaults(mode=_MODE_RUN)
 
     pwd_arg, pwd_kvarg = common_argument[0]
