@@ -20,6 +20,8 @@ class HookObj(object):
 
 
     def __init__(self, path):
+        path = os.path.abspath(path)
+
         if not os.path.exists(path):
             raise ImportError
 
