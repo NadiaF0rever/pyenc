@@ -134,10 +134,16 @@ def pyenc_tool():
 
     hook.HookObj.Init(op.prefixes)
 
+    #add path hook
     sys.path_hooks.append(hook.Hook)
+    #reset import cache
     sys.path_importer_cache = {}
+
+    #set env for run op.main
     sys.argv = op.args
     sys.argv.insert(0, op.main)
+
+    sys.path.append(os.path.dirname(op.main))
 
     with cipher_file.Open(op.main, cipher_file.CIPHER_FILE_READ) as fp:
         code = compile(fp.read(), op.main, "exec")
