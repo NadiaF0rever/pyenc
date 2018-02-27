@@ -1,6 +1,10 @@
 #!/usr/bin/python2.7
 #-*- coding: utf8 -*-
 
+'''
+Copyright NadiaF0rever
+'''
+
 from distutils.core import setup
 
 setup(
