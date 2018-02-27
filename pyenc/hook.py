@@ -1,10 +1,14 @@
 #!/usr/bin/python2.7
 #-*- coding: utf8 -*-
 
+'''
+Copyright NadiaF0rever
+'''
+
+
 import os
 import imp
 import sys
-import logging
 
 from . import cipher_file
 
@@ -34,7 +38,6 @@ class HookObj(object):
                 raise ImportError
 
         self._base_path = path
-        logging.debug("set_base_path: %s %s", self._base_path, self)
 
 
     def get_filename(self, fullname):
@@ -58,7 +61,6 @@ class HookObj(object):
 
 
     def find_module(self, fullname, path=None):
-        logging.debug("find_module fullname: %s path: %s", fullname, path)
 
         path = self.get_filename(fullname)
         if path:
@@ -68,7 +70,6 @@ class HookObj(object):
 
 
     def load_module(self, fullname):
-        logging.debug("load_module fullname: %s", fullname)
 
         path, info = self._get_fileinfo(fullname)
         if HookObj.FILE_IS_EXTENSION(info):
@@ -94,7 +95,6 @@ class HookObj(object):
 
         exec code in module.__dict__
 
-        logging.debug("LOAD %s %s", fullname, dir(module))
 
         return module
 
@@ -112,7 +112,6 @@ class HookObj(object):
 
 
         prefix = self._base_path
-        logging.debug("prefix: %s modname: %s", prefix, modname)
 
         pkg_path = os.path.join(prefix, os.path.join(modname, "__init__.py"))
         if os.path.isfile(pkg_path):

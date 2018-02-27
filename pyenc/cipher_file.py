@@ -1,6 +1,11 @@
 #!/usr/bin/python2.7
 #-*- coding: utf8 -*-
 
+'''
+Copyright NadiaF0rever
+'''
+
+
 
 try:
     import cStringIO as StringIO
