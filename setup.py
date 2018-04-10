@@ -6,6 +6,7 @@ Copyright NadiaF0rever
 '''
 
 from distutils.core import setup
+from Cython.Build import cythonize
 
 setup(
         name = "pyenc",
@@ -13,5 +14,6 @@ setup(
         author = "eeiwant",
         author_email = "eeiwant@gmail.com",
         scripts = ["bin/pyenc"],
+        ext_modules = cythonize("pyenc/*.pyx"),
         packages = ["pyenc"]
     )
