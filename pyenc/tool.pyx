@@ -11,76 +11,83 @@ except ImportError:
     import StringIO
 
 import os
+import re
 import sys
 import argparse
 
-from . import cipher_file, hook
+import setproctitle
+
+from . import hook
 
 _MODE_ENC = "encrypt"
 _MODE_DEC = "decrypt"
 _MODE_RUN = "run"
 
-def _pyenc_enc_cb(path):
-    io = StringIO.StringIO()
-    with open(path, "r") as fp:
-        io.write(fp.read())
-    io.seek(0, 0)
-
-    with cipher_file.Open(path, cipher_file.CIPHER_FILE_WRITE) as fp:
-        fp.write(io.read())
-
-    io.close()
-
-def _pyenc_dec_cb(path):
-    io = StringIO.StringIO()
-    with cipher_file.Open(path, cipher_file.CIPHER_FILE_READ) as fp:
-        io.write(fp.read())
-    io.seek(0, 0)
-
-    with open(path, "w") as fp:
-        fp.write(io.read())
-
-    io.close()
-
-def _build_pyenc_cb(cb):
-
-    def _pyenc_process_files_cb(dirs, files, password, strict):
-        process_files = set()
-        [process_files.add(i) for i in files]
-
-        def walk_cb(args, base_dir, files):
-            for f in files:
-                if f.endswith(".py"):
-                    process_files.add(os.path.join(base_dir, f))
-
-
-        cipher_file.Init(password, strict)
-
-        for dir_ in dirs:
-            os.path.walk(dir_, walk_cb, None)
-
-        for f in process_files:
-            cb(f)
-
-    return _pyenc_process_files_cb
-
-
-pyenc_enc_files = _build_pyenc_cb(_pyenc_enc_cb)
-pyenc_dec_files = _build_pyenc_cb(_pyenc_dec_cb)
-
+def obsucre_password():
+    pass
 
 def pyenc_tool():
+    from . import cipher_file
+
+    #avoid _build_pyenc_cb appear in global namespace
+    def _build_pyenc_cb(cb):
+
+        def _pyenc_process_files_cb(dirs, files, password, strict):
+            process_files = set()
+            [process_files.add(i) for i in files]
+
+            def walk_cb(args, base_dir, files):
+                for f in files:
+                    if f.endswith(".py"):
+                        process_files.add(os.path.join(base_dir, f))
+
+
+            cipher_file.Init(strict)
+            opener = cipher_file.BuildOpener(password)
+
+            for dir_ in dirs:
+                os.path.walk(dir_, walk_cb, None)
+
+            for f in process_files:
+                cb(f, opener)
+
+        return _pyenc_process_files_cb
+
+
+    def _pyenc_enc_cb(path, _opener):
+        io = StringIO.StringIO()
+        with open(path, "r") as fp:
+            io.write(fp.read())
+        io.seek(0, 0)
+
+        with _opener(path, cipher_file.CIPHER_FILE_WRITE) as fp:
+            fp.write(io.read())
+
+        io.close()
+
+    def _pyenc_dec_cb(path, _opener):
+        io = StringIO.StringIO()
+        with _opener(path, cipher_file.CIPHER_FILE_READ) as fp:
+            io.write(fp.read())
+        io.seek(0, 0)
+
+        with open(path, "w") as fp:
+            fp.write(io.read())
+
+        io.close()
+
+    pyenc_enc_files = _build_pyenc_cb(_pyenc_enc_cb)
+    pyenc_dec_files = _build_pyenc_cb(_pyenc_dec_cb)
+
+
     PROG="pyenc"
+    DEF_PASSWD = "emanon"
+    RUN_CMD_ONLY = True
 
     parser = argparse.ArgumentParser(prog=PROG,
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     sub_parser = parser.add_subparsers(help="run pyenc in different mode")
-
-    parser_enc = sub_parser.add_parser("encrypt", help="encrypt specific python files")
-    parser_enc.set_defaults(mode=_MODE_ENC)
-    parser_dec = sub_parser.add_parser("decrypt", help="decrypt specific python files which encrypted by pyenc")
-    parser_dec.set_defaults(mode=_MODE_DEC)
 
     common_argument = (
             (("-P", ), {"type": str, "dest": "password", "default": "",
@@ -97,9 +104,19 @@ def pyenc_tool():
                 "help": "specific encrypt/decrypt .py file"})
     )
 
-    for args, kvargs in common_argument:
-        parser_enc.add_argument(*args, **kvargs)
-        parser_dec.add_argument(*args, **kvargs)
+
+    if not RUN_CMD_ONLY:
+        parser_enc = sub_parser.add_parser("encrypt",
+                help="encrypt specific python files")
+        parser_enc.set_defaults(mode=_MODE_ENC)
+
+        parser_dec = sub_parser.add_parser("decrypt",
+                help="decrypt specific python files which encrypted by pyenc")
+        parser_dec.set_defaults(mode=_MODE_DEC)
+
+        for args, kvargs in common_argument:
+            parser_enc.add_argument(*args, **kvargs)
+            parser_dec.add_argument(*args, **kvargs)
 
 
     parser_run = sub_parser.add_parser("run", help="run python programme which encrypted by pyenc")
@@ -121,10 +138,7 @@ def pyenc_tool():
     op = parser.parse_args()
 
     if not op.password:
-        sys.stderr.write("no password specific. use -h for help\n")
-        sys.exit(1)
-
-    cipher_file.CipherFile.Init(op.password, op.strict)
+        op.password = DEF_PASSWD
 
 
     if op.mode == _MODE_ENC:
@@ -132,6 +146,10 @@ def pyenc_tool():
 
     elif op.mode == _MODE_DEC:
         return pyenc_dec_files(op.dirs, op.files, op.password, op.strict)
+
+
+    cipher_file.Init(op.strict)
+    cipher_opener = cipher_file.BuildOpener(op.password)
 
     if not op.prefixes:
         op.prefixes.append(os.path.dirname(op.main))
