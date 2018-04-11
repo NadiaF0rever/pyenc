@@ -36,28 +36,15 @@ class CipherFile(object):
 
     MAGIC = "CFBIAODI"
 
-    GET_CIPHER = None
     STRICT = False
 
     @classmethod
-    def Init(cls, password, strict):
-
-        #初始化key, iv
-        key, iv = evp_bytestokey(hashlib.sha1, password, "emanon..", 5, 32, 16)
-
-        def _cipher():
-            return AES.new(key, mode=AES.MODE_CBC, IV=iv)
-
-        cls.GET_CIPHER = staticmethod(_cipher)
+    def Init(cls, strict):
         cls.STRICT = strict
 
+    def __init__(self, path, mode, cipher):
 
-    def __init__(self, path, mode):
-
-        if not CipherFile.GET_CIPHER:
-            raise PyEncError("cipher file not initialized call Init first")
-
-        self.__cipher = CipherFile.GET_CIPHER()
+        self.__cipher = cipher
         self.__io = None
         self.__fp = None
 
@@ -121,7 +108,9 @@ class CipherFile(object):
         #增加填充数据 https://en.wikipedia.org/wiki/Padding_(cryptography)#PKCS7
         padding = "".join([chr(pad) for i in xrange(0, pad)])
 
-        self.__fp.write(self.__cipher.encrypt(data + padding))
+        k = self.__cipher.encrypt(data + padding)
+
+        self.__fp.write(k)
         self.__io.close()
         self.__fp.close()
 
@@ -170,36 +159,43 @@ class CipherFile(object):
 def Init(*args, **kvargs):
     return CipherFile.Init(*args, **kvargs)
 
-def Open(path, mode):
-    return CipherFile(path, mode)
+def BuildOpener(password):
+    #初始化key, iv
+    def evp_bytestokey(md, _password, salt, count, key_length, iv_length):
+        md_buf = ""
+        key = ""
+        iv = ""
 
+        addmd = 0
 
-def evp_bytestokey(md, password, salt, count, key_length, iv_length):
-    md_buf = ""
-    key = ""
-    iv = ""
-
-    addmd = 0
-
-    while key_length > len(key) or iv_length > len(iv):
-        c = md()
-        if addmd:
-            c.update(md_buf)
-        addmd += 1
-        c.update(password)
-        c.update(salt)
-        md_buf = c.digest()
-        for i in range(1, count):
+        while key_length > len(key) or iv_length > len(iv):
             c = md()
-            c.update(md_buf)
+            if addmd:
+                c.update(md_buf)
+            addmd += 1
+            c.update(_password)
+            c.update(salt)
             md_buf = c.digest()
+            for i in range(1, count):
+                c = md()
+                c.update(md_buf)
+                md_buf = c.digest()
 
-        md_buf2 = md_buf
+            md_buf2 = md_buf
 
-        if key_length > len(key):
-            key, md_buf2 = key + md_buf2[:key_length - len(key)], md_buf2[key_length - len(key):]
+            if key_length > len(key):
+                key, md_buf2 = key + md_buf2[:key_length - len(key)], md_buf2[key_length - len(key):]
 
-        if iv_length > len(iv):
-            iv, md_buf2 = iv + md_buf2[:iv_length - len(iv)], md_buf2[iv_length - len(iv):]
+            if iv_length > len(iv):
+                iv, md_buf2 = iv + md_buf2[:iv_length - len(iv)], md_buf2[iv_length - len(iv):]
 
-    return key, iv
+        return key, iv
+
+    _key, _iv = evp_bytestokey(hashlib.sha1, password, "emanon..", 5, 32, 16)
+
+    def open_cb(path, mode):
+        _cipher = AES.new(_key, mode=AES.MODE_CBC, IV=_iv)
+        return CipherFile(path, mode, _cipher)
+
+    return open_cb
+
