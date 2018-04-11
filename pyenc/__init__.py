@@ -8,5 +8,5 @@ Copyright NadiaF0rever
 class PyEncError(Exception):
     pass
 
-from .tool import pyenc_enc_files, pyenc_dec_files, pyenc_tool
+from .tool import pyenc_tool
 
