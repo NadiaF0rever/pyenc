@@ -82,7 +82,7 @@ def pyenc_tool():
 
     PROG="pyenc"
     DEF_PASSWD = "emanon"
-    RUN_CMD_ONLY = True
+    RUN_CMD_ONLY = False
 
     parser = argparse.ArgumentParser(prog=PROG,
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
