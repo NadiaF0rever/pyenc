@@ -157,7 +157,7 @@ def pyenc_tool():
     hook.HookObj.Init(op.prefixes)
 
     #add path hook
-    sys.path_hooks.append(hook.Hook)
+    sys.path_hooks.append(hook.BuildHookObj(cipher_opener))
     #reset import cache
     sys.path_importer_cache = {}
 
@@ -167,8 +167,17 @@ def pyenc_tool():
 
     sys.path.append(os.path.dirname(op.main))
 
-    with cipher_file.Open(op.main, cipher_file.CIPHER_FILE_READ) as fp:
+    with cipher_opener(op.main, cipher_file.CIPHER_FILE_READ) as fp:
         code = compile(fp.read(), op.main, "exec")
+
+    #remove pyenc modules avoid name conflic with encryt project
+    print __name__
+    print cipher_file.__name__
+    print hook.__name__
+
+    del sys.modules[cipher_file.__name__]
+    del sys.modules[hook.__name]
+    del sys.modules[__name__]
 
     global_dict = globals()
     global_dict["__name__"] = "__main__"

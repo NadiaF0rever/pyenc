@@ -23,7 +23,7 @@ class HookObj(object):
         cls.PREFIXES = [os.path.abspath(i) for i in prefixes]
 
 
-    def __init__(self, path):
+    def __init__(self, path, opener):
         path = os.path.abspath(path)
 
         if not os.path.exists(path):
@@ -38,6 +38,7 @@ class HookObj(object):
                 raise ImportError
 
         self._base_path = path
+        self.__opener = opener
 
 
     def get_filename(self, fullname):
@@ -49,7 +50,7 @@ class HookObj(object):
         if HookObj.FILE_IS_EXTENSION(info):
             return None
 
-        with cipher_file.Open(path, cipher_file.CIPHER_FILE_READ) as fp:
+        with self.__opener(path, cipher_file.CIPHER_FILE_READ) as fp:
             data = fp.read()
             code = compile(data, "<string>", "exec")
             return code
@@ -130,12 +131,8 @@ class HookObj(object):
 
 
 
+def BuildHookObj(opener):
+    def cb(path):
+        return HookObj(path, opener)
 
-def Hook(path):
-    return HookObj(path)
-
-if __name__ == "__main__":
-    sys.path_hooks.append(Hook)
-    sys.path_importer_cache = {}
-
-    from collections import namedtuple
+    return cb
