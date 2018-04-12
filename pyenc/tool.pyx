@@ -17,7 +17,6 @@ import argparse
 
 import setproctitle
 
-from . import hook
 
 _MODE_ENC = "encrypt"
 _MODE_DEC = "decrypt"
@@ -28,6 +27,7 @@ def obsucre_password():
 
 def pyenc_tool():
     from . import cipher_file
+    from . import hook
 
     #avoid _build_pyenc_cb appear in global namespace
     def _build_pyenc_cb(cb):
@@ -170,15 +170,15 @@ def pyenc_tool():
     with cipher_opener(op.main, cipher_file.CIPHER_FILE_READ) as fp:
         code = compile(fp.read(), op.main, "exec")
 
-    #remove pyenc modules avoid name conflic with encryt project
-    print __name__
-    print cipher_file.__name__
-    print hook.__name__
-
     del sys.modules[cipher_file.__name__]
-    del sys.modules[hook.__name]
+    del sys.modules[hook.__name__]
     del sys.modules[__name__]
+    del sys.modules["pyenc"]
 
     global_dict = globals()
+
     global_dict["__name__"] = "__main__"
+    global_dict["__file__"] = op.main
+    global_dict["__package__"] = None
+
     exec code in global_dict
