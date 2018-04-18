@@ -6,6 +6,18 @@ encrypt and run your python code
 python setup.py install
 ```
 
+### ENV
+#### PYENC_DEF_PASS
+change pyenc default password 
+
+    env PYENC_DEF_PASS=your_default_pass python setup.py install
+
+#### PYENC_RUN_ONLY
+disable pyenc `encrypt`, `decrypt` sub command
+
+    env PYENC_RUN_ONLY=1 python setup.py install
+
+
 ## EXAMPLE
 
 ```shell
@@ -33,7 +45,7 @@ encrypt your python code with **pyenc** `encrypt` sub command
 
 decrypt your python code with **pyenc** `decrypt` sub command
 
-    pyenc encrypt -R a/ -R cmodule -F c.py -F d.py -P $PASSWORD
+    pyenc decrypt -R a/ -R cmodule -F c.py -F d.py -P $PASSWORD
 
 run your python code with **pyenc** `run` sub command
 
