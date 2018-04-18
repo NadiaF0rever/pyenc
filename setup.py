@@ -36,5 +36,11 @@ if __name__ == "__main__":
             author_email = "eeiwant@gmail.com",
             scripts = ["bin/pyenc"],
             ext_modules = cythonize("pyenc/*.pyx"),
-            packages = ["pyenc"]
+            packages = ["pyenc"],
+
+            keywords = [
+                "Requires: cython",
+                "Requires: pycrypto",
+                "Requires: setproctitle",
+            ]
     )
