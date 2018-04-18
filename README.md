@@ -1,6 +1,9 @@
 # PYENC
 encrypt and run your python code
 
+## REQUIRE
+`python2.7`, `cython`, `pycrypto`, `setproctitle`
+
 ## INSTALL
 ```shell
 python setup.py install
